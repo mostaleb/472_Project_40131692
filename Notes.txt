@@ -1,0 +1,8 @@
+what is a broker in this context?
+
+--> def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
+line 331
+
+--> def is_valid_move(self, coords: CoordPair) -> bool:
+line 321
+

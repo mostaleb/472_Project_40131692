@@ -320,6 +320,11 @@ class Game:
 
     def is_valid_move(self, coords: CoordPair) -> bool:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """
+        --> AI (attacker), Firewall (attacker) and Program (attacker) can only move up and left
+        --> AI (defender), Firewall (attacker) andn Program (attacker)
+        --> Techs and Viruses can move in all direction
+        """
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
         unit = self.get(coords.src)
@@ -330,6 +335,10 @@ class Game:
 
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
+        """
+        --> The code to do is to make sure that the units move from one node to another
+        only adjencent ones.
+        """
         if self.is_valid_move(coords):
             self.set(coords.dst, self.get(coords.src))
             self.set(coords.src, None)
