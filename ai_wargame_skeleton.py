@@ -217,7 +217,13 @@ class CoordPair:
             return coords
         else:
             return None
-
+    
+    """@classmethod
+    def valid_move(cls, player: Player, coord_pair: CoordPair, unit: Unit, game: Game) -> bool:
+      if player is Player.Attacker:
+          if unit is UnitType.AI or unit is UnitType.Firewall or unit is UnitType.Program:
+            return Game.is_valid_move(game, coord_pair)
+        else:"""
 
 ##############################################################################################################
 
@@ -325,6 +331,7 @@ class Game:
         --> AI (defender), Firewall (attacker) andn Program (attacker)
         --> Techs and Viruses can move in all direction
         """
+        if coords.src.iter_rectangle(coords)
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
         unit = self.get(coords.src)
