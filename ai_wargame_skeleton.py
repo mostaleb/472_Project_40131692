@@ -331,7 +331,34 @@ class Game:
         --> AI (defender), Firewall (attacker) andn Program (attacker)
         --> Techs and Viruses can move in all direction
         """
-        if coords.src.iter_rectangle(coords)
+
+        adjacent_tiles = coords.src.iter_adjacent()
+        if coords.dst not in adjacent_tiles:
+            print("false")
+        #elif coords.dst in adjacent_tiles:
+        if self.next_player == Player.Attacker:
+            if self.get(coords.src).type == UnitType.AI:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Tech:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Virus:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Program:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Firewall:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+        else:
+            if self.get(coords.src).type == UnitType.AI:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Tech:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Virus:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Program:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            elif self.get(coords.src).type == UnitType.Firewall:
+                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
         unit = self.get(coords.src)
