@@ -1,8 +1,18 @@
-what is a broker in this context?
+Questions:
 
+1- what is a broker in this context?
+
+End of questions
+
+What to change:
 --> def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
 line 331
+TODO implement the attack and heal methods
+TODO add a log for all the moves
 
 --> def is_valid_move(self, coords: CoordPair) -> bool:
 line 321
+TODO verify whether this needs something else or not
+
+End of the things to change
 

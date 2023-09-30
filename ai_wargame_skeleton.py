@@ -157,7 +157,7 @@ class Coord:
         s = s.strip()
         for sep in " ,.:;-_":
             s = s.replace(sep, "")
-        if (len(s) == 2):
+        if len(s) == 2:
             coord = Coord()
             coord.row = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".find(s[0:1].upper())
             coord.col = "0123456789abcdef".find(s[1:2].lower())
@@ -208,7 +208,7 @@ class CoordPair:
         s = s.strip()
         for sep in " ,.:;-_":
             s = s.replace(sep, "")
-        if (len(s) == 4):
+        if len(s) == 4:
             coords = CoordPair()
             coords.src.row = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".find(s[0:1].upper())
             coords.src.col = "0123456789abcdef".find(s[1:2].lower())
@@ -325,7 +325,7 @@ class Game:
             target.mod_health(health_delta)
             self.remove_dead(coord)
 
-    def is_valid_move(self, coords: CoordPair) -> bool:
+    def is_valid_move(self, coords: CoordPair) -> Tuple[bool, bool, bool]:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         """
         --> AI (attacker), Firewall (attacker) and Program (attacker) can only move up and left
@@ -338,40 +338,65 @@ class Game:
 
         # if the destination coordinates are not in the adjacent list, return false
         if coords.dst not in adjacent_tiles:
-            return False
-        # Checks if the player is an attacker or a defender. Then, looks wether the unit is an
+            return False, False, False
+
+        # Checks if the player is an attacker or a defender. Then, looks whether the unit is an
         # AI, program or a firewall and that the unit is trying to move up or left (for attacker)
         # OR down or right (for defender). Returns false if not the case
         if self.next_player == Player.Attacker:
             if ((self.get(coords.src).type == UnitType.AI or self.get(coords.src).type == UnitType.Program or self.get(
                     coords.src).type == UnitType.Firewall)
                     and (coords.dst != adjacent_tiles[0] and coords.dst != adjacent_tiles[1])):  # up or left
-                return False
+                return False, False, False
         else:
             if ((self.get(coords.src).type == UnitType.AI or self.get(coords.src).type == UnitType.Program or self.get(
                     coords.src).type == UnitType.Firewall)
                     and (coords.dst != adjacent_tiles[2] and coords.dst != adjacent_tiles[3])):
-                return False
-
+                return False, False, False
+        # Checks whether the destination or the source is part of the board
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
-            return False
+            return False, False, False
+
+        # Checks whether the unit at the source is the player's unit
         unit = self.get(coords.src)
         if unit is None or unit.player != self.next_player:
-            return False
+            return False, False, False
+
+        # Checks whether there is a unit at the destination or not
         unit = self.get(coords.dst)
-        return unit is None
+        if self.next_player == unit.player:
+            # Healing
+            return True, False, True
+        elif self.next_player != unit.player:
+            # Attacking
+            return True, True, False
+        else:
+            return True, False, False
 
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         """
-        --> The code to do is to make sure that the units move from one node to another
-        only adjencent ones.
+        --> The code to do is to make sure that the units move from one node to another or not
         """
-        if self.is_valid_move(coords):
-            self.set(coords.dst, self.get(coords.src))
-            self.set(coords.src, None)
+
+        # Checks whether to perform a move or not and whether the move was meant to be an attack to another unit
+        allowed_move, attack, heal = self.is_valid_move(coords)
+        if allowed_move:
+            if attack:
+                attack(coords)
+            elif heal:
+                heal(coords)
+            else:
+                self.set(coords.dst, self.get(coords.src))
+                self.set(coords.src, None)
             return True, ""
-        return (False, "invalid move")
+        return False, "invalid move"
+
+    def attack(self, coords: CoordPair):
+        print('Attack')
+
+    def heal(self, coords: CoordPair):
+        print('Heal')
 
     def next_turn(self):
         """Transitions game to the next turn."""
@@ -468,7 +493,7 @@ class Game:
         for coord in CoordPair.from_dim(self.options.dim).iter_rectangle():
             unit = self.get(coord)
             if unit is not None and unit.player == player:
-                yield (coord, unit)
+                yield coord, unit
 
     def is_finished(self) -> bool:
         """Check if the game is over."""
@@ -503,9 +528,9 @@ class Game:
         move_candidates = list(self.move_candidates())
         random.shuffle(move_candidates)
         if len(move_candidates) > 0:
-            return (0, move_candidates[0], 1)
+            return 0, move_candidates[0], 1
         else:
-            return (0, None, 0)
+            return 0, None, 0
 
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
