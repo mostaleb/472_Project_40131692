@@ -217,13 +217,14 @@ class CoordPair:
             return coords
         else:
             return None
-    
+
     """@classmethod
     def valid_move(cls, player: Player, coord_pair: CoordPair, unit: Unit, game: Game) -> bool:
       if player is Player.Attacker:
           if unit is UnitType.AI or unit is UnitType.Firewall or unit is UnitType.Program:
             return Game.is_valid_move(game, coord_pair)
         else:"""
+
 
 ##############################################################################################################
 
@@ -328,36 +329,29 @@ class Game:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         """
         --> AI (attacker), Firewall (attacker) and Program (attacker) can only move up and left
-        --> AI (defender), Firewall (attacker) andn Program (attacker)
+        --> AI (defender), Firewall (attacker) andn Program (attacker) can only move down and right
         --> Techs and Viruses can move in all direction
         """
 
-        adjacent_tiles = coords.src.iter_adjacent()
+        # Looks for the surrounding tiles and places them in a list
+        adjacent_tiles = list(coords.src.iter_adjacent())
+
+        # if the destination coordinates are not in the adjacent list, return false
         if coords.dst not in adjacent_tiles:
-            print("false")
-        #elif coords.dst in adjacent_tiles:
+            return False
+        # Checks if the player is an attacker or a defender. Then, looks wether the unit is an
+        # AI, program or a firewall and that the unit is trying to move up or left (for attacker)
+        # OR down or right (for defender). Returns false if not the case
         if self.next_player == Player.Attacker:
-            if self.get(coords.src).type == UnitType.AI:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Tech:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Virus:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Program:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Firewall:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            if ((self.get(coords.src).type == UnitType.AI or self.get(coords.src).type == UnitType.Program or self.get(
+                    coords.src).type == UnitType.Firewall)
+                    and (coords.dst != adjacent_tiles[0] and coords.dst != adjacent_tiles[1])):  # up or left
+                return False
         else:
-            if self.get(coords.src).type == UnitType.AI:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Tech:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Virus:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Program:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
-            elif self.get(coords.src).type == UnitType.Firewall:
-                print(coords.src.row, ", ", coords.src.col, ": ", coords.dst.row, ", ", coords.dst.col)
+            if ((self.get(coords.src).type == UnitType.AI or self.get(coords.src).type == UnitType.Program or self.get(
+                    coords.src).type == UnitType.Firewall)
+                    and (coords.dst != adjacent_tiles[2] and coords.dst != adjacent_tiles[3])):
+                return False
 
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False
