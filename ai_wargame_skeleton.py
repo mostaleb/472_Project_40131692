@@ -13,6 +13,12 @@ import requests
 MAX_HEURISTIC_SCORE = 2000000000
 MIN_HEURISTIC_SCORE = -2000000000
 
+global file_name
+
+
+def set_file_name(alpha_beta: str, max_time: str, max_turns: str) -> str:
+    return str("gametrace-" + alpha_beta + "-" + max_time + "-" + max_turns)
+
 
 class UnitType(Enum):
     """Every unit type."""
@@ -343,8 +349,11 @@ class Game:
         if coords.dst not in adjacent_tiles:
             return False, False, False
 
-        unit = self.get(coords.dst)
 
+        if self.get(coords.src) is not None and self.get(coords.src).player != self.next_player:
+            return False, False, False
+
+        unit = self.get(coords.dst)
         if unit is not None:
             if self.next_player != unit.player:
                 # Attacking
@@ -387,7 +396,6 @@ class Game:
         """
         --> The code to do is to make sure that the units move from one node to another or not
         """
-
         # Checks whether to perform a move or not and whether the move was meant to be an attack to another unit
         allowed_move, attack, heal = self.is_valid_move(coords)
         if allowed_move:
@@ -400,6 +408,9 @@ class Game:
             else:
                 self.set(coords.dst, self.get(coords.src))
                 self.set(coords.src, None)
+
+            self.gametrace(str(self.turns_played), str(self.next_player), str(coords.src), str(coords.dst),
+                           self.to_string())
             return True, ""
         return False, "invalid move"
 
@@ -436,7 +447,7 @@ class Game:
     def self_destruct(self, coord: Coord) -> None:
         area_damage = list(coord.iter_range(1))
         for element_dst in area_damage:
-            if self.is_valid_coord(element_dst):
+            if self.is_valid_coord(element_dst) and self.get(element_dst) is not None:
                 unit_dst = self.get(element_dst)
                 unit_dst.health -= 2
                 if not unit_dst.is_alive():
@@ -647,6 +658,17 @@ class Game:
             print(f"Broker error: {error}")
         return None
 
+    def gametrace(self, turn: str, player_name: str, action_src: str, action_dst: str, board_config: str):
+        global file_name
+        with open(file_name, "a") as f:
+            f.write("=============================================================================\n"
+                    "Turn #" + turn + "\n"
+                    "Player: " + player_name + "\n"
+                    "Move from " + action_src + " to " + action_dst + "\n"
+                    "Configuration of the board: \n" +
+                    board_config + "\n"
+                    "=============================================================================\n")
+
 
 ##############################################################################################################
 
@@ -685,6 +707,23 @@ def main():
     # create a new game
     game = Game(options=options)
 
+    global file_name
+    file_name = set_file_name(str(options.alpha_beta), str(options.max_time), str(options.max_turns))
+
+    with open(file_name, "w") as f:
+        f.write("=============================================================================\n"
+                "Timeout:" + str(options.max_time) + "\n"
+                "Max number of turns: " + str(options.max_turns) + "\n"
+                "Player 1: " + "Attacker\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.AttackerVsComp else "Comp\n")
+
+    with open(file_name, "a") as f:
+        f.write(
+            "Player 2: " + "Defender\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.CompVsDefender else "Comp\n")
+
+    with open(file_name, "a") as f:
+        f.write("Initial configuration: " + game.to_string() + "\n"
+        "=============================================================================\n")
+
     # the main game loop
     while True:
         print()
@@ -692,6 +731,8 @@ def main():
         winner = game.has_winner()
         if winner is not None:
             print(f"{winner.name} wins!")
+            with open(file_name, "a") as f:
+                f.write(winner.name + " wins with " + str(game.turns_played) + " move")
             break
         if game.options.game_type == GameType.AttackerVsDefender:
             game.human_turn()
