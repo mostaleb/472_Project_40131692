@@ -442,7 +442,7 @@ class Game:
                 if not unit_dst.is_alive():
                     self.remove_dead(element_dst)
 
-        self.mod_health(coord, 10)
+        self.mod_health(coord, -10)
 
         return None
 
