@@ -325,13 +325,16 @@ class Game:
             target.mod_health(health_delta)
             self.remove_dead(coord)
 
-    def is_valid_move(self, coords: CoordPair) -> Tuple[bool, bool, bool]:
+    def is_valid_move(self, coords: CoordPair) -> Tuple[bool, bool, bool] | None:
         """Validate a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
         """
         --> AI (attacker), Firewall (attacker) and Program (attacker) can only move up and left
         --> AI (defender), Firewall (attacker) andn Program (attacker) can only move down and right
         --> Techs and Viruses can move in all direction
         """
+        if coords.src == coords.dst and self.get(coords.src) is not None and self.next_player == self.get(
+                coords.src).player:
+            return True, True, True
 
         # Looks for the surrounding tiles and places them in a list
         adjacent_tiles = list(coords.src.iter_adjacent())
@@ -339,6 +342,16 @@ class Game:
         # if the destination coordinates are not in the adjacent list, return false
         if coords.dst not in adjacent_tiles:
             return False, False, False
+
+        unit = self.get(coords.dst)
+
+        if unit is not None:
+            if self.next_player != unit.player:
+                # Attacking
+                return True, True, False
+            elif self.next_player == unit.player:
+                # Healing
+                return True, False, True
 
         # Checks if the player is an attacker or a defender. Then, looks whether the unit is an
         # AI, program or a firewall and that the unit is trying to move up or left (for attacker)
@@ -353,6 +366,7 @@ class Game:
                     coords.src).type == UnitType.Firewall)
                     and (coords.dst != adjacent_tiles[2] and coords.dst != adjacent_tiles[3])):
                 return False, False, False
+
         # Checks whether the destination or the source is part of the board
         if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
             return False, False, False
@@ -362,15 +376,10 @@ class Game:
         if unit is None or unit.player != self.next_player:
             return False, False, False
 
-        # Checks whether there is a unit at the destination or not
+        # Checks whether the destination is empty
         unit = self.get(coords.dst)
-        if self.next_player == unit.player:
-            # Healing
-            return True, False, True
-        elif self.next_player != unit.player:
-            # Attacking
-            return True, True, False
-        else:
+        if unit is None:
+            # Movement
             return True, False, False
 
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
@@ -382,21 +391,60 @@ class Game:
         # Checks whether to perform a move or not and whether the move was meant to be an attack to another unit
         allowed_move, attack, heal = self.is_valid_move(coords)
         if allowed_move:
-            if attack:
-                attack(coords)
+            if attack and heal:
+                self.self_destruct(coords.src)
+            elif attack:
+                self.attacking(coords)
             elif heal:
-                heal(coords)
+                return self.healing(coords)
             else:
                 self.set(coords.dst, self.get(coords.src))
                 self.set(coords.src, None)
             return True, ""
         return False, "invalid move"
 
-    def attack(self, coords: CoordPair):
-        print('Attack')
+    def attacking(self, coords: CoordPair):
 
-    def heal(self, coords: CoordPair):
-        print('Heal')
+        # AI = 0, Virus = 1, Tech = 2, Program = 3, Firewall = 4
+        unit_src = self.get(coords.src)
+        unit_dst = self.get(coords.dst)
+
+        unit_src.health -= Unit.damage_table[unit_src.type.value][unit_dst.type.value]
+        unit_dst.health -= Unit.damage_table[unit_dst.type.value][unit_src.type.value]
+
+        if not unit_src.is_alive():
+            self.remove_dead(coords.src)
+        if not unit_dst.is_alive():
+            self.remove_dead(coords.dst)
+
+    def healing(self, coords: CoordPair) -> Tuple[bool, str]:
+
+        # AI = 0, Virus = 1, Tech = 2, Program = 3, Firewall = 4
+        unit_src = self.get(coords.src)
+        unit_dst = self.get(coords.dst)
+
+        if unit_dst.health == 9:
+            return False, "invalid action"
+
+        unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
+
+        if unit_dst.health > 9:
+            unit_dst.health = 9
+            return False, "invalid action"
+        return True, ""
+
+    def self_destruct(self, coord: Coord) -> None:
+        area_damage = list(coord.iter_range(1))
+        for element_dst in area_damage:
+            if self.is_valid_coord(element_dst):
+                unit_dst = self.get(element_dst)
+                unit_dst.health -= 2
+                if not unit_dst.is_alive():
+                    self.remove_dead(element_dst)
+
+        self.mod_health(coord, 10)
+
+        return None
 
     def next_turn(self):
         """Transitions game to the next turn."""
