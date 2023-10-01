@@ -338,6 +338,7 @@ class Game:
         --> AI (defender), Firewall (attacker) andn Program (attacker) can only move down and right
         --> Techs and Viruses can move in all direction
         """
+        # Checks for a suicide while confirming the unit is correctly chosen
         if coords.src == coords.dst and self.get(coords.src) is not None and self.next_player == self.get(
                 coords.src).player:
             return True, True, True
@@ -349,10 +350,11 @@ class Game:
         if coords.dst not in adjacent_tiles:
             return False, False, False
 
-
+        # Checks if the unit at src is the current player's unit
         if self.get(coords.src) is not None and self.get(coords.src).player != self.next_player:
             return False, False, False
 
+        # Whether it's an attack or a healing
         unit = self.get(coords.dst)
         if unit is not None:
             if self.next_player != unit.player:
@@ -396,7 +398,8 @@ class Game:
         """
         --> The code to do is to make sure that the units move from one node to another or not
         """
-        # Checks whether to perform a move or not and whether the move was meant to be an attack to another unit
+        # Checks whether to perform a move or not and whether the move was meant to be an attack or a heal to another
+        # unit
         allowed_move, attack, heal = self.is_valid_move(coords)
         if allowed_move:
             if attack and heal:
@@ -409,6 +412,7 @@ class Game:
                 self.set(coords.dst, self.get(coords.src))
                 self.set(coords.src, None)
 
+            # Game trace written to a file
             self.gametrace(str(self.turns_played), str(self.next_player), str(coords.src), str(coords.dst),
                            self.to_string())
             return True, ""
@@ -420,9 +424,11 @@ class Game:
         unit_src = self.get(coords.src)
         unit_dst = self.get(coords.dst)
 
+        # Reduces the health of the units depending on the damage table
         unit_src.health -= Unit.damage_table[unit_src.type.value][unit_dst.type.value]
         unit_dst.health -= Unit.damage_table[unit_dst.type.value][unit_src.type.value]
 
+        # Checks if units are dead after the attack
         if not unit_src.is_alive():
             self.remove_dead(coords.src)
         if not unit_dst.is_alive():
@@ -434,18 +440,25 @@ class Game:
         unit_src = self.get(coords.src)
         unit_dst = self.get(coords.dst)
 
+        # Looks if the dst unit is already at 9 of health point
         if unit_dst.health == 9:
             return False, "invalid action"
 
+        # Increases the health of a unit according to the repair table
         unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
 
+        # Checks that the units did not receive more than 9 health points
         if unit_dst.health > 9:
             unit_dst.health = 9
             return False, "invalid action"
         return True, ""
 
     def self_destruct(self, coord: Coord) -> None:
+
+        # Takes the area of damage for a suicide
         area_damage = list(coord.iter_range(1))
+
+        # Loops through the area and removes 2 health points to all units in the area and removes the dead units
         for element_dst in area_damage:
             if self.is_valid_coord(element_dst) and self.get(element_dst) is not None:
                 unit_dst = self.get(element_dst)
@@ -453,6 +466,7 @@ class Game:
                 if not unit_dst.is_alive():
                     self.remove_dead(element_dst)
 
+        # Removes the self-destructed unit by removing 10 health points
         self.mod_health(coord, -10)
 
         return None
@@ -717,12 +731,11 @@ def main():
                 "Player 1: " + "Attacker\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.AttackerVsComp else "Comp\n")
 
     with open(file_name, "a") as f:
-        f.write(
-            "Player 2: " + "Defender\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.CompVsDefender else "Comp\n")
+        f.write("Player 2: " + "Defender\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.CompVsDefender else "Comp\n")
 
     with open(file_name, "a") as f:
         f.write("Initial configuration: " + game.to_string() + "\n"
-        "=============================================================================\n")
+                "=============================================================================\n")
 
     # the main game loop
     while True:
