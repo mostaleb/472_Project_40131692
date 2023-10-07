@@ -364,6 +364,10 @@ class Game:
                 # Healing
                 return True, False, True
 
+        # Checks if unit is in attack mode
+        if self.is_in_attack(coords, adjacent_tiles):
+            return False, False, False
+
         # Checks if the player is an attacker or a defender. Then, looks whether the unit is an
         # AI, program or a firewall and that the unit is trying to move up or left (for attacker)
         # OR down or right (for defender). Returns false if not the case
@@ -392,6 +396,13 @@ class Game:
         if unit is None:
             # Movement
             return True, False, False
+
+    def is_in_attack(self, coords: CoordPair, adjacent_tiles: list) -> bool:
+
+        for coord in adjacent_tiles:
+            if self.get(coord) is not None and self.get(coord).player is not self.next_player:
+                return True
+        return False
 
     def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
         """Validate and perform a move expressed as a CoordPair. TODO: WRITE MISSING CODE!!!"""
@@ -576,13 +587,12 @@ class Game:
         """Check if the game is over and returns winner"""
         if self.options.max_turns is not None and self.turns_played >= self.options.max_turns:
             return Player.Defender
-        elif self._attacker_has_ai:
+        if self._attacker_has_ai:
             if self._defender_has_ai:
                 return None
             else:
                 return Player.Attacker
-        elif self._defender_has_ai:
-            return Player.Defender
+        return Player.Defender
 
     def move_candidates(self) -> Iterable[CoordPair]:
         """Generate valid move candidates for the next player."""
@@ -677,11 +687,11 @@ class Game:
         with open(file_name, "a") as f:
             f.write("=============================================================================\n"
                     "Turn #" + turn + "\n"
-                    "Player: " + player_name + "\n"
-                    "Move from " + action_src + " to " + action_dst + "\n"
-                    "Configuration of the board: \n" +
+                                      "Player: " + player_name + "\n"
+                                                                 "Move from " + action_src + " to " + action_dst + "\n"
+                                                                                                                   "Configuration of the board: \n" +
                     board_config + "\n"
-                    "=============================================================================\n")
+                                   "=============================================================================\n")
 
 
 ##############################################################################################################
@@ -694,6 +704,7 @@ def main():
     parser.add_argument('--max_depth', type=int, help='maximum search depth')
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
+    parser.add_argument('--max_turns', type=int, default=100, help='maximum turns per game')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
@@ -717,6 +728,8 @@ def main():
         options.max_time = args.max_time
     if args.broker is not None:
         options.broker = args.broker
+    if options.max_turns is not None:
+        options.max_turns = args.max_turns
 
     # create a new game
     game = Game(options=options)
@@ -727,15 +740,16 @@ def main():
     with open(file_name, "w") as f:
         f.write("=============================================================================\n"
                 "Timeout:" + str(options.max_time) + "\n"
-                "Max number of turns: " + str(options.max_turns) + "\n"
-                "Player 1: " + "Attacker\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.AttackerVsComp else "Comp\n")
+                                                     "Max number of turns: " + str(options.max_turns) + "\n"
+                                                                                                        "Player 1: " + "Attacker\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.AttackerVsComp else "Comp\n")
 
     with open(file_name, "a") as f:
-        f.write("Player 2: " + "Defender\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.CompVsDefender else "Comp\n")
+        f.write(
+            "Player 2: " + "Defender\n" if options.game_type == GameType.AttackerVsDefender or options.game_type == GameType.CompVsDefender else "Comp\n")
 
     with open(file_name, "a") as f:
         f.write("Initial configuration: " + game.to_string() + "\n"
-                "=============================================================================\n")
+                                                               "=============================================================================\n")
 
     # the main game loop
     while True:

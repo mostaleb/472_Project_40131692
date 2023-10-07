@@ -17,7 +17,7 @@ E:  .   .  aP9 aV9 aA9
 =============================================================================
 Turn #0
 Player: Player.Attacker
-Move from E4 to E4
+Move from E2 to E1
 Configuration of the board: 
 Next player: Attacker
 Turns played: 0
@@ -26,8 +26,168 @@ Turns played: 0
 A: dA9 dT9 dF9  .   .  
 B: dT9 dP9  .   .   .  
 C: dF9  .   .   .  aP9 
-D:  .   .   .  aF7 aV7 
-E:  .   .  aP9 aV7  .  
+D:  .   .   .  aF9 aV9 
+E:  .  aP9  .  aV9 aA9 
 
 =============================================================================
-Defender wins with 1 move
+=============================================================================
+Turn #1
+Player: Player.Defender
+Move from C0 to C1
+Configuration of the board: 
+Next player: Defender
+Turns played: 1
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF9  .   .  aP9 
+D:  .   .   .  aF9 aV9 
+E:  .  aP9  .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #2
+Player: Player.Attacker
+Move from E1 to D1
+Configuration of the board: 
+Next player: Attacker
+Turns played: 2
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF9  .   .  aP9 
+D:  .  aP9  .  aF9 aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #3
+Player: Player.Defender
+Move from C1 to D1
+Configuration of the board: 
+Next player: Defender
+Turns played: 3
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF8  .   .  aP9 
+D:  .  aP8  .  aF9 aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #4
+Player: Player.Attacker
+Move from D3 to C3
+Configuration of the board: 
+Next player: Attacker
+Turns played: 4
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF8  .  aF9 aP9 
+D:  .  aP8  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #5
+Player: Player.Defender
+Move from C1 to D1
+Configuration of the board: 
+Next player: Defender
+Turns played: 5
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF7  .  aF9 aP9 
+D:  .  aP7  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #6
+Player: Player.Attacker
+Move from C3 to C2
+Configuration of the board: 
+Next player: Attacker
+Turns played: 6
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF7 aF9  .  aP9 
+D:  .  aP7  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #7
+Player: Player.Defender
+Move from C1 to C2
+Configuration of the board: 
+Next player: Defender
+Turns played: 7
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF6 aF8  .  aP9 
+D:  .  aP7  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #8
+Player: Player.Attacker
+Move from C2 to C1
+Configuration of the board: 
+Next player: Attacker
+Turns played: 8
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT9 dP9  .   .   .  
+C:  .  dF5 aF7  .  aP9 
+D:  .  aP7  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #9
+Player: Player.Defender
+Move from C1 to C1
+Configuration of the board: 
+Next player: Defender
+Turns played: 9
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT7 dP7  .   .   .  
+C:  .   .  aF5  .  aP9 
+D:  .  aP5  .   .  aV9 
+E:  .   .   .  aV9 aA9 
+
+=============================================================================
+=============================================================================
+Turn #10
+Player: Player.Attacker
+Move from E4 to E4
+Configuration of the board: 
+Next player: Attacker
+Turns played: 10
+
+    0   1   2   3   4  
+A: dA9 dT9 dF9  .   .  
+B: dT7 dP7  .   .   .  
+C:  .   .  aF5  .  aP9 
+D:  .  aP5  .   .  aV7 
+E:  .   .   .  aV7  .  
+
+=============================================================================
+Defender wins with 11 move
