@@ -16,3 +16,8 @@ TODO verify whether this needs something else or not
 
 End of the things to change
 
+D2
+
+We have the function move_candidates that does looks for all the possible moves that are possible for the player, which will
+be a huge help for the task
+

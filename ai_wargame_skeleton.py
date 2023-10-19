@@ -618,11 +618,11 @@ class Game:
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
+        #We are not going to be using random_move(), instead, we are going to implement an alpha_beta() function
         (score, move, avg_depth) = self.random_move()
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
-        print(f"Average recursive depth: {avg_depth:0.1f}")
         print(f"Evals per depth: ", end='')
         for k in sorted(self.stats.evaluations_per_depth.keys()):
             print(f"{k}:{self.stats.evaluations_per_depth[k]} ", end='')
@@ -632,6 +632,18 @@ class Game:
             print(f"Eval perf.: {total_evals / self.stats.total_seconds / 1000:0.1f}k/s")
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         return move
+
+    def alpha_beta(self) -> Tuple[int, CoordPair | None, float]:
+        return 0, None, 0.0
+
+    def minimax(self) -> Tuple[int, CoordPair | None, float]:
+        """
+        Max = Attacker
+        Min = Defender
+
+        :return:
+        """
+        return 0, None, 0.0
 
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""
