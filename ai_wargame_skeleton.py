@@ -618,8 +618,15 @@ class Game:
     def suggest_move(self) -> CoordPair | None:
         """Suggest the next move using minimax alpha beta. TODO: REPLACE RANDOM_MOVE WITH PROPER GAME LOGIC!!!"""
         start_time = datetime.now()
-        #We are not going to be using random_move(), instead, we are going to implement an alpha_beta() function
+
+        # Constructing the tree according to game parameters
+        game_clone = self.clone()
+        head = Node(None, None, None, None)
+        tree = self.construct_tree(Options.max_depth, head, game_clone)
+
+        # We are not going to be using random_move(), instead, we are going to implement an minimax() function
         (score, move, avg_depth) = self.random_move()
+
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
         print(f"Heuristic score: {score}")
@@ -633,18 +640,82 @@ class Game:
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         return move
 
-    def alpha_beta(self) -> Tuple[int, CoordPair | None, float]:
-        return 0, None, 0.0
-
-    def minimax(self) -> Tuple[int, CoordPair | None, float]:
+    def minimax(self, pos: int, depth: int, alpha: int, beta: int, max: bool) -> Tuple[int, CoordPair | None, float]:
         """
         Max = Attacker
         Min = Defender
-
-        :return:
         """
-        return 0, None, 0.0
 
+        if depth == 0:
+            return 0, None, 0.0
+
+    def evaluate(self, a_units: tuple[Coord, Unit], d_units: tuple[Coord, Unit]) -> int:
+
+        # Takes notes of all the units of each player in their own lists
+        attacker_units = [list(tup) for tup in a_units]
+        defender_units = [list(tup) for tup in d_units]
+
+        # Keeps track of the number of units (and later their points) in the following order
+        # Virus, Tech, Firewall, Program and AI for both players
+        attacker_points = [0, 0, 0, 0, 0]
+        defender_points = [0, 0, 0, 0, 0]
+
+        """
+        AI = 0
+        Tech = 1
+        Virus = 2
+        Program = 3
+        Firewall = 4
+        
+        Sums up the number of each unit of each player in a list
+        """
+        for element in attacker_units:
+            if element[1] == 0:
+                attacker_points[4] += 1
+            elif element[1] == 1:
+                attacker_points[1] += 1
+            elif element[1] == 2:
+                attacker_points[0] += 1
+            elif element[1] == 3:
+                attacker_points[3] += 1
+            else:
+                attacker_points[2] += 1
+
+        for element in defender_units:
+            if element[1] == 0:
+                defender_points[4] += 1
+            elif element[1] == 1:
+                defender_points[1] += 1
+            elif element[1] == 2:
+                defender_points[0] += 1
+            elif element[1] == 3:
+                defender_points[3] += 1
+            else:
+                defender_points[2] += 1
+
+        # Returns the value of the heuristic (will be positive if attacker is winning
+        # and negative if attacker in losing
+        return ((attacker_points[0] * 3 +
+                attacker_points[1] * 3 +
+                attacker_points[2] * 3 +
+                attacker_points[3] * 3 +
+                attacker_points[4] * 9999) -
+                (defender_points[0] * 3 +
+                defender_points[1] * 3 +
+                defender_points[2] * 3 +
+                defender_points[3] * 3 +
+                defender_points[4] * 9999))
+
+    def construct_tree(self, depth: int, node: Node, game_clone: Game) -> Node:
+        if depth == 0:
+            node.value = self.evaluate(game_clone.player_units(Player.Attacker), game_clone.player_units(Player.Defender))
+            return node
+        """
+        for child_node in node.children:
+            construct_tree(depth - 1, child_node,)
+
+        """
+        return node
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""
         if self.options.broker is None:
@@ -708,6 +779,25 @@ class Game:
 
 ##############################################################################################################
 
+class Node():
+    parent: Node | None
+    children: list[Node | None] | None
+    moves: list[CoordPair] | None
+    value: int | None # heuristic
+
+    def __init__(self, parent, children, moves, value):
+        self.parent = parent
+        self.children = children
+        self.moves = moves
+        self.value = value
+
+    def add_child(self, node: Node):
+        self.children.__add__(node)
+
+    def add_moves(self, move: CoordPair):
+        self.moves.__add__(move)
+
+##############################################################################################################
 def main():
     # parse command line arguments
     parser = argparse.ArgumentParser(
@@ -717,6 +807,7 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--max_turns', type=int, default=100, help='maximum turns per game')
+    parser.add_argument('--algo', type=bool, default=False, help='wether minimax is used with alpha-beta pruning (True) or not (False)')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
@@ -742,6 +833,8 @@ def main():
         options.broker = args.broker
     if options.max_turns is not None:
         options.max_turns = args.max_turns
+    if options.alpha_beta is not None:
+        options.alpha_beta = args.algo
 
     # create a new game
     game = Game(options=options)
