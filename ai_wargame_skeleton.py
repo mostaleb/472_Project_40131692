@@ -622,9 +622,9 @@ class Game:
         # Constructing the tree according to game parameters
         game_clone = self.clone()
         head = Node(None, None, None, None)
-        tree = self.construct_tree(Options.max_depth, head, game_clone)
+        tree = self.construct_tree(Options.max_depth, None, head, game_clone)
 
-        # We are not going to be using random_move(), instead, we are going to implement an minimax() function
+        # We are not going to be using random_move(), instead, we are going to implement a minimax() function
         (score, move, avg_depth) = self.random_move()
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
@@ -649,7 +649,7 @@ class Game:
         if depth == 0:
             return 0, None, 0.0
 
-    def evaluate(self, a_units: tuple[Coord, Unit], d_units: tuple[Coord, Unit]) -> int:
+    def evaluate(self, a_units: Iterable[tuple[Coord, Unit]], d_units: Iterable[tuple[Coord, Unit]]) -> int:
 
         # Takes notes of all the units of each player in their own lists
         attacker_units = [list(tup) for tup in a_units]
@@ -696,26 +696,41 @@ class Game:
         # Returns the value of the heuristic (will be positive if attacker is winning
         # and negative if attacker in losing
         return ((attacker_points[0] * 3 +
-                attacker_points[1] * 3 +
-                attacker_points[2] * 3 +
-                attacker_points[3] * 3 +
-                attacker_points[4] * 9999) -
+                 attacker_points[1] * 3 +
+                 attacker_points[2] * 3 +
+                 attacker_points[3] * 3 +
+                 attacker_points[4] * 9999) -
                 (defender_points[0] * 3 +
-                defender_points[1] * 3 +
-                defender_points[2] * 3 +
-                defender_points[3] * 3 +
-                defender_points[4] * 9999))
+                 defender_points[1] * 3 +
+                 defender_points[2] * 3 +
+                 defender_points[3] * 3 +
+                 defender_points[4] * 9999))
 
-    def construct_tree(self, depth: int, node: Node, game_clone: Game) -> Node:
+    def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
+
+        # Condition that stops the recursion (we arrived at the depth limit)
         if depth == 0:
-            node.value = self.evaluate(game_clone.player_units(Player.Attacker), game_clone.player_units(Player.Defender))
+            node.value = self.evaluate(game_clone.player_units(Player.Attacker),
+                                       game_clone.player_units(Player.Defender))
+            node.parent = parent
             return node
-        """
-        for child_node in node.children:
-            construct_tree(depth - 1, child_node,)
 
-        """
-        return node
+        # We set the parent of the node
+        node.parent = parent
+
+        # We get a list of all the CoordPair at this node of the game
+        moves_candidates = list(self.move_candidates())
+
+        # Create a clone of the present state of the game and perform a move on it,
+        # then construct a tree (one child at a time)
+        for move in moves_candidates:
+            game_clone_to_perform_move = game_clone.clone()
+            game_clone_to_perform_move.perform_move(move)
+            node.move = move
+            new_child_node = Node(None, None, None, None)
+            new_child_node = self.construct_tree(depth - 1, node, new_child_node, game_clone_to_perform_move)
+            node.children = node.children.__add__([new_child_node])
+
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""
         if self.options.broker is None:
@@ -782,20 +797,15 @@ class Game:
 class Node():
     parent: Node | None
     children: list[Node | None] | None
-    moves: list[CoordPair] | None
-    value: int | None # heuristic
+    moves: CoordPair | None
+    value: int | None  # heuristic
 
-    def __init__(self, parent, children, moves, value):
+    def __init__(self, parent, children, move, value):
         self.parent = parent
         self.children = children
-        self.moves = moves
+        self.move = move
         self.value = value
 
-    def add_child(self, node: Node):
-        self.children.__add__(node)
-
-    def add_moves(self, move: CoordPair):
-        self.moves.__add__(move)
 
 ##############################################################################################################
 def main():
@@ -807,7 +817,8 @@ def main():
     parser.add_argument('--max_time', type=float, help='maximum search time')
     parser.add_argument('--game_type', type=str, default="manual", help='game type: auto|attacker|defender|manual')
     parser.add_argument('--max_turns', type=int, default=100, help='maximum turns per game')
-    parser.add_argument('--algo', type=bool, default=False, help='wether minimax is used with alpha-beta pruning (True) or not (False)')
+    parser.add_argument('--algo', type=bool, default=False,
+                        help='wether minimax is used with alpha-beta pruning (True) or not (False)')
     parser.add_argument('--broker', type=str, help='play via a game broker')
     args = parser.parse_args()
 
