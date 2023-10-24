@@ -1,6 +1,7 @@
 from __future__ import annotations
 import argparse
 import copy
+import sys
 from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field
@@ -355,6 +356,10 @@ class Game:
         if self.get(coords.src) is not None and self.get(coords.src).player != self.next_player:
             return False, False, False
 
+        # Checks whether there is a player at the src
+        if self.get(coords.src) is None:
+            return False, False, False
+
         # Whether it's an attack or a healing
         unit = self.get(coords.dst)
         if unit is not None:
@@ -423,6 +428,8 @@ class Game:
             elif attack:
                 self.attacking(coords)
             elif heal:
+                if coords.src is None:
+                    print('weird')
                 return self.healing(coords)
             else:
                 self.set(coords.dst, self.get(coords.src))
@@ -459,7 +466,8 @@ class Game:
         # Looks if the dst unit is already at 9 of health point
         if unit_dst.health == 9:
             return False, "invalid action"
-
+        if unit_src is None:
+            print("def weird")
         # Increases the health of a unit according to the repair table
         unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
 
@@ -629,10 +637,9 @@ class Game:
 
         opt = Options()
 
-        head = Node(None, None, None, None)
-        self.construct_tree(opt.max_depth, None, head, game_clone)
+        head = self.construct_tree(opt.max_depth, None, game_clone, None)
 
-        score, move_to_make = self.minimax(head, opt.max_depth, -10015,10015,True if self.next_player == Player.Attacker else False)
+        score, move_to_make = self.minimax(head, opt.max_depth, -10015, 10015, True if self.next_player == Player.Attacker else False)
 
         # We are not going to be using random_move(), instead, we are going to implement a minimax() function
         # (score, move, avg_depth) = self.random_move()
@@ -650,18 +657,19 @@ class Game:
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         return move_to_make
 
-    def minimax(self, node: Node, depth: int, alpha: int, beta: int, max_: bool) -> Tuple[int, CoordPair]:
+    def minimax(self, node: Node, depth: int, alpha: int, beta: int, max_: bool) -> Iterable[Tuple[int, CoordPair]]:
         """
         Max = Attacker
         Min = Defender
         """
-        if depth == 0:
-            return node.value
+        if depth == 0 or not node.children:
+            return node.value, node.move
 
         if max_:
             max_evaluation = -10015
             for child in node.children:
-                evaluation = self.minimax(child, depth - 1, alpha, beta, False)
+                depth -= 1
+                evaluation, move = self.minimax(child, depth, alpha, beta, False)
                 max_evaluation = max(max_evaluation, evaluation)
                 if Options.alpha_beta:
                     alpha = max(alpha, evaluation)
@@ -672,7 +680,8 @@ class Game:
         else:
             min_evaluation = 10015
             for child in node.children:
-                evaluation = self.minimax(child, depth - 1, alpha, beta, True)
+                depth -= 1
+                evaluation, move = self.minimax(child, depth, alpha, beta, True)
                 min_evaluation = min(min_evaluation, evaluation)
                 if Options.alpha_beta:
                     beta = min(beta, evaluation)
@@ -738,60 +747,75 @@ class Game:
                  defender_points[3] * 3 +
                  defender_points[4] * 9999))
 
-    from collections import deque
+    def construct_tree(self, depth: int, father: Node, game_clone: Game, p_move: CoordPair):
 
-    def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
-        # Initialize a stack to keep track of the tree nodes and their state
-        stack = deque([(depth, parent, node, game_clone)])
+        current_node = Node(parent=father, move=p_move, value=None)
 
-        # Loop as long as there are items in the stack
-        while stack:
-            # Pop the next item from the stack
-            depth, parent, node, game_clone = stack.pop()
+        if depth == 0:
+            attacker = Player(0)
+            defender = Player(1)
+            current_node.value = self.evaluate(self.player_units(attacker), self.player_units(defender))
 
-            # Check if we've reached the depth limit of the tree
-            if depth == 0:
-                # If so, evaluate the node and set its parent
-                node.value = self.evaluate(game_clone.player_units(Player.Attacker),
-                                           game_clone.player_units(Player.Defender))
-                node.parent = parent
-                print("Leaf Node: Depth=" + str(depth) + ", Value=" + str(node.value))  # Print leaf node details
-                continue  # Skip the rest and handle the next item on the stack
-
-            # Set the parent for the current node
-            node.parent = parent
-            print("Internal Node: Depth=" + str(depth) + ", Parent=" + str(id(parent)) + ", Node=" + str(
-                id(node)))  # Print internal node details
-
-            # Get the list of possible moves at this game state
+        else:
             moves_candidates = list(self.move_candidates())
 
-            # Initialize an empty list to store the child nodes
-            children_node = []
+            games = []
+            children = []
 
-            # Loop through each possible move to create child nodes
             for move in moves_candidates:
-                # Clone the game state and perform the move
-                game_clone_to_perform_move = game_clone.clone()
-                game_clone_to_perform_move.perform_move(move)
+                t1, t2, t3 = self.is_valid_move(move)
+                if t1 is False and t2 is False and t3 is False:
+                    continue
+                performed_move = game_clone.clone()
+                performed_move.perform_move(move)
+                performed_move.next_turn()
+                games.append([performed_move, move])
 
-                # Assign the move to the current node
-                node.move = move
+            for game in games:
+                child = Node(parent=current_node, move=game[1], value=None)
+                depth -= 1
+                self.construct_tree(depth, current_node, game[0], game[1])
+                children.append(child)
 
-                # Create a new child node
-                new_child_node = Node(None, [], None, None)
+            current_node.children = children
 
-                # Add the new child node to the list of children
-                children_node.append(new_child_node)
+        if current_node.parent is None:
+            return current_node
 
-                # Push the child node onto the stack to process it in a future iteration
-                stack.append((depth - 1, node, new_child_node, game_clone_to_perform_move))
-
-            # Assign the list of child nodes to the current node's `children` attribute
-            node.children = children_node
-
-        # Return the root of the constructed tree
-        return node
+    # def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
+    #
+    #     print(game_clone.next_player)
+    #     # Condition that stops the recursion (we arrived at the depth limit)
+    #     if depth == 0:
+    #         node.value = self.evaluate(game_clone.player_units(Player.Attacker),
+    #                                    game_clone.player_units(Player.Defender))
+    #         node.parent = parent
+    #
+    #         return node
+    #
+    #     # We set the parent of the node
+    #     node.parent = parent
+    #
+    #     # We get a list of all the CoordPair at this node of the game
+    #     moves_candidates = list(self.move_candidates())
+    #
+    #     # Creating an empty list to allow the use of node.children later on
+    #     children_node = []
+    #
+    #     # Create a clone of the present state of the game and perform a move on it,
+    #     # then construct a tree (one child at a time)
+    #     for move in moves_candidates:
+    #         game_clone_to_perform_move = game_clone.clone()
+    #         game_clone_to_perform_move.perform_move(move)
+    #         game_clone_to_perform_move.next_turn()
+    #
+    #         node.move = move
+    #         new_child_node = Node(None, None, None, None)
+    #         new_child_node = self.construct_tree(depth - 1, node, new_child_node, game_clone_to_perform_move)
+    #         children_node.append(new_child_node)
+    #
+    #     node.children = children_node
+    #     return node
 
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""

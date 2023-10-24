@@ -1,0 +1,26 @@
+e1 = (weight * AIP1 + weight * VP1 + weight * TP1) - (weight * AIP2 + weight * VP2 + weight * TP2)
+
+weight = A number assigned depending on the importance (the AI weight is going to be significantly bigger than the 2 others, respectively 1000, 250 and 250
+
+AIPi = Health points of the AI of player i
+VPi = Health points of the viruses of player i
+TPi = Health points of the techs of player i
+
+The idea is that all units on the board of a player will use itself to protect their AI since it is an important unit
+and its health points are valuable. However, the viruses and the techs are also valuable since they deal and handle
+huge damage respectively, therefore, these 2 units wouldn't engage in battles that aren't necessary. Also, the AI would
+evade the fighting as much as possible.
+
+--> Viruses would be more violent since their damage maximizes victory
+--> Techs would use themselves as shields for the AI as counters to the Viruses for minimizing the damage
+
+e2 = (weight * AMP1 + weight * HP1) - (weight * AMP2 + weight HP2)
+
+weight =  number assigned depending on the importance (To have a lot of available moves is really important which is why
+its weight will be significantly bigger than the health points, respectively 300 and 50)
+
+AMPi = Available moves of player i
+HPi = Health points of player i
+
+The idea behind this heuristic is to occupy strategic positions that would allow a lot of movements while restricting
+the opponent's movements
