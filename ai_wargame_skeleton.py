@@ -368,7 +368,7 @@ class Game:
                 return True, True, False
             elif self.next_player == unit.player:
                 # Healing
-                return True, False, True
+                return self.try_healing(coords)
 
         # Checks if unit is in attack mode
         if self.is_in_attack(coords, adjacent_tiles):
@@ -389,7 +389,7 @@ class Game:
                 return False, False, False
 
         # Checks whether the destination or the source is part of the board
-        if not self.is_valid_coord(coords.src) or not self.is_valid_coord(coords.dst):
+        if not self.is_valid_coord(coords.src) and not self.is_valid_coord(coords.dst):
             return False, False, False
 
         # Checks whether the unit at the source is the player's unit
@@ -402,7 +402,20 @@ class Game:
         if unit is None:
             # Movement
             return True, False, False
+    def try_healing(self, coords: CoordPair) -> Tuple[bool, bool, bool]:
+        # AI = 0, Virus = 1, Tech = 2, Program = 3, Firewall = 4
+        unit_src = self.get(coords.src)
+        unit_dst = self.get(coords.dst)
 
+        # Looks if the dst unit is already at 9 of health point
+        if unit_dst.health == 9:
+            return False, False, False
+
+        # Checks that the units did not receive more than 9 health points
+        if unit_dst.health + Unit.repair_table[unit_src.type.value][unit_dst.type.value] > 9:
+            unit_dst.health = 9
+            return False, False, False
+        return True, False, True
     def is_in_attack(self, coords: CoordPair, adjacent_tiles: list) -> bool:
 
         for coord in adjacent_tiles:
@@ -428,8 +441,6 @@ class Game:
             elif attack:
                 self.attacking(coords)
             elif heal:
-                if coords.src is None:
-                    print('weird')
                 return self.healing(coords)
             else:
                 self.set(coords.dst, self.get(coords.src))
@@ -466,8 +477,7 @@ class Game:
         # Looks if the dst unit is already at 9 of health point
         if unit_dst.health == 9:
             return False, "invalid action"
-        if unit_src is None:
-            print("def weird")
+
         # Increases the health of a unit according to the repair table
         unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
 
@@ -637,7 +647,14 @@ class Game:
 
         opt = Options()
 
-        head = self.construct_tree(opt.max_depth, None, game_clone, None)
+        head = Node(parent=None, move=None, value=None)
+
+        self.construct_tree(opt.max_depth, head, game_clone, None)
+
+        #
+        # self.print_tree(head)
+        #
+        # sys.exit(0)
 
         score, move_to_make = self.minimax(head, opt.max_depth, -10015, 10015, True if self.next_player == Player.Attacker else False)
 
@@ -657,7 +674,19 @@ class Game:
         print(f"Elapsed time: {elapsed_seconds:0.1f}s")
         return move_to_make
 
-    def minimax(self, node: Node, depth: int, alpha: int, beta: int, max_: bool) -> Iterable[Tuple[int, CoordPair]]:
+    def print_tree(self, node: Node, level: int = 0, prefix: str = 'Root: '):
+        indent = ' ' * 4 * level  # 4 spaces for each level
+        move_str = node.move if node.move is not None else 'None'
+        value_str = node.value if node.value is not None else 'None'
+        block = f"Move: {move_str}\n{indent}Value: {value_str}"
+
+        print(f"{indent}{prefix}{block}")
+
+        for i, child in enumerate(node.children):
+            next_prefix = f"Child {i + 1}: "
+            self.print_tree(child, level + 1, next_prefix)
+
+    def minimax(self, node: Node, depth: int, alpha: int, beta: int, max_: bool) -> Tuple[int, CoordPair]:
         """
         Max = Attacker
         Min = Defender
@@ -667,28 +696,37 @@ class Game:
 
         if max_:
             max_evaluation = -10015
+            best_move = None
             for child in node.children:
-                depth -= 1
-                evaluation, move = self.minimax(child, depth, alpha, beta, False)
-                max_evaluation = max(max_evaluation, evaluation)
+                evaluation, move = self.minimax(child, depth - 1, alpha, beta, False)
+                if evaluation > max_evaluation:
+                    max_evaluation = evaluation
+                    best_move = child.move
+
                 if Options.alpha_beta:
                     alpha = max(alpha, evaluation)
                     if beta <= alpha:
                         break
-                node.value = evaluation
-                return max_evaluation, node.move
+
+            node.value = max_evaluation
+            return max_evaluation, best_move
+
         else:
             min_evaluation = 10015
+            best_move = None
             for child in node.children:
-                depth -= 1
-                evaluation, move = self.minimax(child, depth, alpha, beta, True)
-                min_evaluation = min(min_evaluation, evaluation)
+                evaluation, move = self.minimax(child, depth - 1, alpha, beta, True)
+                if evaluation < min_evaluation:
+                    min_evaluation = evaluation
+                    best_move = child.move
+
                 if Options.alpha_beta:
                     beta = min(beta, evaluation)
                     if beta <= alpha:
                         break
-                node.value = evaluation
-                return min_evaluation, node.move
+
+            node.value = min_evaluation
+            return min_evaluation, best_move
 
     def evaluate(self, a_units: Iterable[tuple[Coord, Unit]], d_units: Iterable[tuple[Coord, Unit]]) -> int:
 
@@ -749,38 +787,35 @@ class Game:
 
     def construct_tree(self, depth: int, father: Node, game_clone: Game, p_move: CoordPair):
 
-        current_node = Node(parent=father, move=p_move, value=None)
+        # Everytime this function is called, we are descending a depth level
+        depth -= 1
 
+        # If we reach the leaves we just want to give the node a value from the evaluation
         if depth == 0:
-            attacker = Player(0)
-            defender = Player(1)
-            current_node.value = self.evaluate(self.player_units(attacker), self.player_units(defender))
+            father.value = self.evaluate(game_clone.player_units(Player.Attacker),
+                                         game_clone.player_units(Player.Defender))
+            return
 
-        else:
-            moves_candidates = list(self.move_candidates())
+        # We need the list of moves (this one includes the illegal ones)
+        moves_candidates_dirty = list(game_clone.move_candidates())
 
-            games = []
-            children = []
+        # This is for the "clean" moves
+        moves_candidates = []
 
-            for move in moves_candidates:
-                t1, t2, t3 = self.is_valid_move(move)
-                if t1 is False and t2 is False and t3 is False:
-                    continue
-                performed_move = game_clone.clone()
-                performed_move.perform_move(move)
-                performed_move.next_turn()
-                games.append([performed_move, move])
+        for coords in moves_candidates_dirty:
+            x1, x2, x3 = self.is_valid_move(coords)
+            if (x1 is True or x2 is True or x3 is True) and self.is_valid_coord(coords.src) and self.is_valid_coord(coords.dst):
+                moves_candidates.append(coords)
 
-            for game in games:
-                child = Node(parent=current_node, move=game[1], value=None)
-                depth -= 1
-                self.construct_tree(depth, current_node, game[0], game[1])
-                children.append(child)
+        for moves in moves_candidates:
+            performed_move_game = game_clone.clone()
+            performed_move_game.perform_move(moves)
+            child = Node(parent=father, move=moves, value=None)
+            father.children.append(child)
+            self.construct_tree(depth, child, performed_move_game, moves)
 
-            current_node.children = children
 
-        if current_node.parent is None:
-            return current_node
+
 
     # def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
     #

@@ -1,23 +1,7 @@
-Questions:
+TODO fix the attacking and healing
+healing is both way (it shouldnt)
+attacking health points are wrong
 
-1- what is a broker in this context?
-
-End of questions
-
-What to change:
---> def perform_move(self, coords: CoordPair) -> Tuple[bool, str]:
-line 331
-TODO implement the attack and heal methods
-TODO add a log for all the moves
-
---> def is_valid_move(self, coords: CoordPair) -> bool:
-line 321
-TODO verify whether this needs something else or not
-
-End of the things to change
-
-D2
-
-We have the function move_candidates that does looks for all the possible moves that are possible for the player, which will
-be a huge help for the task
-
+TODO add the timer
+need to make the computer lose when it goes beyond the allowed time
+checks handout to fix the other things
