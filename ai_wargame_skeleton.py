@@ -782,6 +782,78 @@ class Game:
                  defender_points[3] * 3 +
                  defender_points[4] * 9999))
 
+    def e1(self, a_units: Iterable[tuple[Coord, Unit]], d_units: Iterable[tuple[Coord, Unit]]) -> int:
+
+        attacker_units = [list(tup) for tup in a_units]
+        defender_units = [list(tup) for tup in d_units]
+
+        # Keeps track of the number of units (and later their points) in the following order
+        # Virus, Tech, Firewall, Program and AI for both players
+        attacker_points = [0, 0, 0]
+        defender_points = [0, 0, 0]
+
+        """
+        AI = 0
+        Tech = 1
+        Virus = 2
+        Program = 3
+        Firewall = 4
+
+        """
+        for element in attacker_units:
+            if element[1] == 0:
+                attacker_points[2] += element[1].health
+            elif element[1] == 1:
+                attacker_points[1] += element[1].health
+            elif element[1] == 2:
+                attacker_points[0] += element[1].health
+
+        for element in defender_units:
+            if element[1] == 0:
+                defender_points[2] += element[1].health
+            elif element[1] == 1:
+                defender_points[1] += element[1].health
+            elif element[1] == 2:
+                defender_points[0] += element[1].health
+
+        return (attacker_points[2] * 1000 + attacker_points[1] * 250 + attacker_points[0] * 250) - (
+                defender_points[2] * 1000 + defender_points[1] * 250 + defender_points[0] * 250)
+
+    def e2(self, a_units: Iterable[tuple[Coord, Unit]], d_units: Iterable[tuple[Coord, Unit]]) -> int:
+
+        attacker_units = [list(tup) for tup in a_units]
+        defender_units = [list(tup) for tup in d_units]
+
+        good_pos_attacker = 0
+        good_pos_defender = 0
+
+        health_attacker = 0
+        health_defender = 0
+
+        for element_a in attacker_units:
+            enemies_around = list(element_a[0].iter_adjacent())
+            for pos in enemies_around:
+                if self.get(pos) is None:
+                    good_pos_attacker += 1
+                elif self.get(pos).player is Player.Attacker:
+                    good_pos_attacker += 1
+
+        for element_d in defender_units:
+            enemies_around = list(element_d[0].iter_adjacent())
+            for pos in enemies_around:
+                if self.get(pos) is None:
+                    good_pos_defender += 1
+                elif self.get(pos).player is Player.Defender:
+                    good_pos_defender += 1
+
+        for e_a in attacker_units:
+            health_attacker += e_a[1].health
+
+        for e_d in defender_units:
+            health_defender += e_d[1].health
+
+        return (5 * good_pos_attacker + 30 * health_attacker) - (5 * good_pos_defender + 30 * health_defender)
+
     def construct_tree(self, depth: int, father: Node, game_clone: Game, p_move: CoordPair,
                        time_construction_tree: float, start_time: float):
 
@@ -790,8 +862,10 @@ class Game:
 
         # If we reach the leaves we just want to give the node a value from the evaluation
         if depth == 0 or time_construction_tree <= datetime.now().timestamp() - start_time:
-            father.value = self.evaluate(game_clone.player_units(Player.Attacker),
-                                         game_clone.player_units(Player.Defender))
+            father.value = self.e1(game_clone.player_units(Player.Attacker),
+                                   game_clone.player_units(Player.Defender)) + self.e2(
+                game_clone.player_units(Player.Attacker),
+                game_clone.player_units(Player.Defender))
             return
 
         # We need the list of moves (this one includes the illegal ones)
@@ -1006,6 +1080,7 @@ def main():
             else:
                 print("Computer doesn't know what to do!!!")
                 exit(1)
+
 
 ##############################################################################################################
 

@@ -17,7 +17,7 @@ evade the fighting as much as possible.
 e2 = (weight * AMP1 + weight * HP1) - (weight * AMP2 + weight HP2)
 
 weight =  number assigned depending on the importance (To have a lot of available moves is really important which is why
-its weight will be significantly bigger than the health points, respectively 300 and 50)
+its weight will be significantly bigger than the health points, respectively 30 and 5)
 
 AMPi = Available moves of player i
 HPi = Health points of player i
