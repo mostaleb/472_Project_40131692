@@ -651,11 +651,6 @@ class Game:
 
         self.construct_tree(opt.max_depth, head, game_clone, None)
 
-        #
-        # self.print_tree(head)
-        #
-        # sys.exit(0)
-
         score, move_to_make = self.minimax(head, opt.max_depth, -10015, 10015, True if self.next_player == Player.Attacker else False)
 
         # We are not going to be using random_move(), instead, we are going to implement a minimax() function
