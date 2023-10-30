@@ -402,6 +402,7 @@ class Game:
         if unit is None:
             # Movement
             return True, False, False
+
     def try_healing(self, coords: CoordPair) -> Tuple[bool, bool, bool]:
         # AI = 0, Virus = 1, Tech = 2, Program = 3, Firewall = 4
         unit_src = self.get(coords.src)
@@ -416,6 +417,7 @@ class Game:
             unit_dst.health = 9
             return False, False, False
         return True, False, True
+
     def is_in_attack(self, coords: CoordPair, adjacent_tiles: list) -> bool:
 
         for coord in adjacent_tiles:
@@ -430,11 +432,8 @@ class Game:
         """
         # Checks whether to perform a move or not and whether the move was meant to be an attack or a heal to another
         # unit
-        if coords.src is None:
-            print('weird')
         allowed_move, attack, heal = self.is_valid_move(coords)
-        if coords.src is None:
-            print('weird')
+
         if allowed_move:
             if attack and heal:
                 self.self_destruct(coords.src)
@@ -459,8 +458,8 @@ class Game:
         unit_dst = self.get(coords.dst)
 
         # Reduces the health of the units depending on the damage table
-        unit_src.health -= Unit.damage_table[unit_src.type.value][unit_dst.type.value]
-        unit_dst.health -= Unit.damage_table[unit_dst.type.value][unit_src.type.value]
+        unit_src.health -= Unit.damage_table[unit_dst.type.value][unit_src.type.value]
+        unit_dst.health -= Unit.damage_table[unit_src.type.value][unit_dst.type.value]
 
         # Checks if units are dead after the attack
         if not unit_src.is_alive():
@@ -609,7 +608,7 @@ class Game:
     def has_winner(self) -> Player | None:
         """Check if the game is over and returns winner"""
         if self.options.max_turns is not None and self.turns_played >= self.options.max_turns:
-            return Player.Defender
+            return Player.Attacker if self.next_player == Player.Defender else Player.Defender
         if self._attacker_has_ai:
             if self._defender_has_ai:
                 return None
@@ -645,16 +644,15 @@ class Game:
         # Constructing the tree according to game parameters
         game_clone = self.clone()
 
-        opt = Options()
+        time_construction_tree = self.options.max_time
 
         head = Node(parent=None, move=None, value=None)
 
-        self.construct_tree(opt.max_depth, head, game_clone, None)
+        self.construct_tree(self.options.max_depth, head, game_clone, None, time_construction_tree,
+                            start_time.timestamp())
 
-        score, move_to_make = self.minimax(head, opt.max_depth, -10015, 10015, True if self.next_player == Player.Attacker else False)
-
-        # We are not going to be using random_move(), instead, we are going to implement a minimax() function
-        # (score, move, avg_depth) = self.random_move()
+        score, move_to_make = self.minimax(head, self.options.max_depth, -10015, 10015,
+                                           True if self.next_player == Player.Attacker else False)
 
         elapsed_seconds = (datetime.now() - start_time).total_seconds()
         self.stats.total_seconds += elapsed_seconds
@@ -694,11 +692,13 @@ class Game:
             best_move = None
             for child in node.children:
                 evaluation, move = self.minimax(child, depth - 1, alpha, beta, False)
+                if evaluation is None:
+                    continue
                 if evaluation > max_evaluation:
                     max_evaluation = evaluation
                     best_move = child.move
 
-                if Options.alpha_beta:
+                if self.options.alpha_beta:
                     alpha = max(alpha, evaluation)
                     if beta <= alpha:
                         break
@@ -711,11 +711,13 @@ class Game:
             best_move = None
             for child in node.children:
                 evaluation, move = self.minimax(child, depth - 1, alpha, beta, True)
+                if evaluation is None:
+                    continue
                 if evaluation < min_evaluation:
                     min_evaluation = evaluation
                     best_move = child.move
 
-                if Options.alpha_beta:
+                if self.options.alpha_beta:
                     beta = min(beta, evaluation)
                     if beta <= alpha:
                         break
@@ -740,7 +742,7 @@ class Game:
         Virus = 2
         Program = 3
         Firewall = 4
-        
+
         Sums up the number of each unit of each player in a list
         """
         for element in attacker_units:
@@ -780,13 +782,14 @@ class Game:
                  defender_points[3] * 3 +
                  defender_points[4] * 9999))
 
-    def construct_tree(self, depth: int, father: Node, game_clone: Game, p_move: CoordPair):
+    def construct_tree(self, depth: int, father: Node, game_clone: Game, p_move: CoordPair,
+                       time_construction_tree: float, start_time: float):
 
         # Everytime this function is called, we are descending a depth level
         depth -= 1
 
         # If we reach the leaves we just want to give the node a value from the evaluation
-        if depth == 0:
+        if depth == 0 or time_construction_tree <= datetime.now().timestamp() - start_time:
             father.value = self.evaluate(game_clone.player_units(Player.Attacker),
                                          game_clone.player_units(Player.Defender))
             return
@@ -799,7 +802,8 @@ class Game:
 
         for coords in moves_candidates_dirty:
             x1, x2, x3 = self.is_valid_move(coords)
-            if (x1 is True or x2 is True or x3 is True) and self.is_valid_coord(coords.src) and self.is_valid_coord(coords.dst):
+            if (x1 is True or x2 is True or x3 is True) and self.is_valid_coord(coords.src) and self.is_valid_coord(
+                    coords.dst):
                 moves_candidates.append(coords)
 
         for moves in moves_candidates:
@@ -807,10 +811,11 @@ class Game:
             performed_move_game.perform_move(moves)
             child = Node(parent=father, move=moves, value=None)
             father.children.append(child)
-            self.construct_tree(depth, child, performed_move_game, moves)
-
-
-
+            if time_construction_tree <= datetime.now().timestamp() - start_time:
+                father.value = self.evaluate(game_clone.player_units(Player.Attacker),
+                                             game_clone.player_units(Player.Defender))
+                return
+            self.construct_tree(depth, child, performed_move_game, moves, time_construction_tree, start_time)
 
     # def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
     #
@@ -1001,7 +1006,6 @@ def main():
             else:
                 print("Computer doesn't know what to do!!!")
                 exit(1)
-
 
 ##############################################################################################################
 
