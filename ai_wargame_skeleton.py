@@ -414,7 +414,6 @@ class Game:
 
         # Checks that the units did not receive more than 9 health points
         if unit_dst.health + Unit.repair_table[unit_src.type.value][unit_dst.type.value] > 9:
-            unit_dst.health = 9
             return False, False, False
         return True, False, True
 
@@ -477,13 +476,14 @@ class Game:
         if unit_dst.health == 9:
             return False, "invalid action"
 
-        # Increases the health of a unit according to the repair table
-        unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
-
         # Checks that the units did not receive more than 9 health points
         if unit_dst.health > 9:
             unit_dst.health = 9
             return False, "invalid action"
+
+        # Increases the health of a unit according to the repair table
+        unit_dst.health += Unit.repair_table[unit_src.type.value][unit_dst.type.value]
+
         return True, ""
 
     def self_destruct(self, coord: Coord) -> None:
@@ -890,41 +890,6 @@ class Game:
                                              game_clone.player_units(Player.Defender))
                 return
             self.construct_tree(depth, child, performed_move_game, moves, time_construction_tree, start_time)
-
-    # def construct_tree(self, depth: int, parent: Node, node: Node, game_clone: Game) -> Node:
-    #
-    #     print(game_clone.next_player)
-    #     # Condition that stops the recursion (we arrived at the depth limit)
-    #     if depth == 0:
-    #         node.value = self.evaluate(game_clone.player_units(Player.Attacker),
-    #                                    game_clone.player_units(Player.Defender))
-    #         node.parent = parent
-    #
-    #         return node
-    #
-    #     # We set the parent of the node
-    #     node.parent = parent
-    #
-    #     # We get a list of all the CoordPair at this node of the game
-    #     moves_candidates = list(self.move_candidates())
-    #
-    #     # Creating an empty list to allow the use of node.children later on
-    #     children_node = []
-    #
-    #     # Create a clone of the present state of the game and perform a move on it,
-    #     # then construct a tree (one child at a time)
-    #     for move in moves_candidates:
-    #         game_clone_to_perform_move = game_clone.clone()
-    #         game_clone_to_perform_move.perform_move(move)
-    #         game_clone_to_perform_move.next_turn()
-    #
-    #         node.move = move
-    #         new_child_node = Node(None, None, None, None)
-    #         new_child_node = self.construct_tree(depth - 1, node, new_child_node, game_clone_to_perform_move)
-    #         children_node.append(new_child_node)
-    #
-    #     node.children = children_node
-    #     return node
 
     def post_move_to_broker(self, move: CoordPair):
         """Send a move to the game broker."""
